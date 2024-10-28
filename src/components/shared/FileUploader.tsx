@@ -4,12 +4,12 @@ import { FileWithPath, useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui";
 import { convertFileToUrl } from "@/lib/utils";
 
-type FileUploaderProps = {
+type VideoUploaderProps = {
   fieldChange: (files: File[]) => void;
   mediaUrl: string;
 };
 
-const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
+const VideoUploader = ({ fieldChange, mediaUrl }: VideoUploaderProps) => {
   const [file, setFile] = useState<File[]>([]);
   const [fileUrl, setFileUrl] = useState<string>(mediaUrl);
 
@@ -19,13 +19,13 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
       fieldChange(acceptedFiles);
       setFileUrl(convertFileToUrl(acceptedFiles[0]));
     },
-    [file]
+    [fieldChange]
   );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     accept: {
-      "image/*": [".png", ".jpeg", ".jpg"],
+      "video/*": [".mp4", ".mkv", ".mov", ".avi"],
     },
   });
 
@@ -38,26 +38,26 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
       {fileUrl ? (
         <>
           <div className="flex flex-1 justify-center w-full p-5 lg:p-10">
-            <img src={fileUrl} alt="image" className="file_uploader-img" />
+            <video src={fileUrl} controls className="file_uploader-img" />
           </div>
-          <p className="file_uploader-label">Click or drag photo to replace</p>
+          <p className="file_uploader-label">Cliquer ou déposer la vidéo ici</p>
         </>
       ) : (
         <div className="file_uploader-box ">
           <img
-            src="/assets/icons/file-upload.svg"
+            src="/assets/icons/file-upload.png"
             width={96}
             height={77}
             alt="file upload"
           />
 
           <h3 className="base-medium text-light-2 mb-2 mt-6">
-            Drag photo here
+            Déposer la vidéo ici
           </h3>
-          <p className="text-light-4 small-regular mb-6">SVG, PNG, JPG</p>
+          <p className="text-light-4 small-regular mb-6">MP4, MKV, MOV, AVI</p>
 
           <Button type="button" className="shad-button_dark_4">
-            Select from computer
+            Sélectionner depuis l'ordinateur
           </Button>
         </div>
       )}
@@ -65,4 +65,4 @@ const FileUploader = ({ fieldChange, mediaUrl }: FileUploaderProps) => {
   );
 };
 
-export default FileUploader;
+export default VideoUploader;

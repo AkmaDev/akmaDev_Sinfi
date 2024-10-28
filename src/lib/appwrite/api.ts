@@ -3,6 +3,7 @@ import { ID, Query } from "appwrite";
 import { appwriteConfig, account, databases, storage, avatars } from "./config";
 import { IUpdatePost, INewPost, INewUser, IUpdateUser } from "@/types";
 
+
 // ============================================================
 // AUTH
 // ============================================================
@@ -490,28 +491,66 @@ export async function getUserById(userId: string) {
 // ============================== UPDATE USER
 export async function updateUser(user: IUpdateUser) {
   const hasFileToUpdate = user.file.length > 0;
+  const hasVideoToUpdate = (user.videoFile ?? []).length > 0; // si vide renvoi tableau vide
   try {
     let image = {
       imageUrl: user.imageUrl,
       imageId: user.imageId,
     };
+    let video = {
+      videoUrl: user.videoUrl,
+      videoId: user.videoId,
+    };
+    
+    if (hasVideoToUpdate) {
+      // Upload new video to appwrite storage
+      const uploadedVideo = await uploadFile(user.videoFile![0]);
+      if (!uploadedVideo) throw new Error("Échec du téléchargement de la vidéo");
+
+       // Get new video url
+      const videoUrl = getFilePreview(uploadedVideo.$id);
+      if (!videoUrl) {
+        await deleteFile(uploadedVideo.$id);
+        throw new Error("Impossible de récupérer l'URL de la vidéo");
+      }
+      
+      video = { ...video, videoUrl: videoUrl, videoId: uploadedVideo.$id };
+    }
+
+    // const file = user.file[0];
+    // const fileType = file.type.split('/')[0]; 
 
     if (hasFileToUpdate) {
       // Upload new file to appwrite storage
-      const uploadedFile = await uploadFile(user.file[0]);
-      if (!uploadedFile) throw Error;
 
-      // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
-      if (!fileUrl) {
-        await deleteFile(uploadedFile.$id);
-        throw Error;
+      // if (fileType === 'video') {
+      // const uploadedVideo = await uploadFile(file);
+      // if (!uploadedVideo) throw new Error("Échec du téléchargement de la vidéo");
+      // const videoUrl = getFilePreview(uploadedVideo.$id);
+
+      //   if (!videoUrl) {
+      //     await deleteFile(uploadedVideo.$id);
+      //     throw new Error("Impossible de récupérer l'URL de la vidéo");
+      //   }
+
+      //   video = { ...video, videoUrl: videoUrl, videoId: uploadedVideo.$id };
+      // }else if (fileType === 'image') {
+        const uploadedFile = await uploadFile(user.file[0]);
+        if (!uploadedFile) throw new Error("Échec du téléchargement du fichier");
+  
+      //   // Get new file url
+        const fileUrl = getFilePreview(uploadedFile.$id);
+        if (!fileUrl) {
+               await deleteFile(uploadedFile.$id);
+          throw new Error("Impossible de récupérer l'URL du fichier");
+        }
+  
+        image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
       }
+      //  }
 
-      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
-    }
 
-    //  Update user
+    // Update user
     const updatedUser = await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCollectionId,
@@ -519,28 +558,115 @@ export async function updateUser(user: IUpdateUser) {
       {
         name: user.name,
         bio: user.bio,
+        facebook: user.facebook,
+        youtube: user.youtube,
+        linkedin: user.linkedin,
+        instagram: user.instagram,
+        tiktok: user.tiktok,
+        websiteLink: user.websiteLink,
+        location: user.location,
         imageUrl: image.imageUrl,
         imageId: image.imageId,
+        videoUrl: video.videoUrl,
+        videoId: video.videoId,
       }
     );
 
     // Failed to update
     if (!updatedUser) {
+      console.error("Échec de la mise à jour de l'utilisateur.");
       // Delete new file that has been recently uploaded
-      if (hasFileToUpdate) {
+      if ( hasFileToUpdate) {
         await deleteFile(image.imageId);
       }
-      // If no new file uploaded, just throw error
-      throw Error;
+      if (hasVideoToUpdate) {
+        await deleteFile(video.videoId!);
+      }
+      throw new Error("Échec de la mise à jour de l'utilisateur");
     }
+
 
     // Safely delete old file after successful update
     if (user.imageId && hasFileToUpdate) {
       await deleteFile(user.imageId);
     }
 
+    if (user.videoId && hasVideoToUpdate) {
+      await deleteFile(user.videoId);
+    }
+
     return updatedUser;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.log(error.message);
+    } else {
+      console.log("Une erreur inattendue est survenue.");
+    }
+  }
+}
+
+
+
+export async function uploadVideo(file: File) {
+  try {
+    const uploadedVideo= await storage.createFile(
+      appwriteConfig.storageId,
+      ID.unique(),
+      file
+    );
+
+    return uploadedVideo.$id;
   } catch (error) {
     console.log(error);
   }
 }
+
+export const getVideoUrl = (videoId: string) => {
+  return `https://cloud.appwrite.io/v1/storage/buckets/${appwriteConfig.storageId}/files/${videoId}/view?project=${appwriteConfig.projectId}`;
+};
+
+
+// Fonction pour calculer le hash d'un fichier
+// async function calculateFileHash(file: File) {
+//   const arrayBuffer = await file.arrayBuffer();
+//   const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+//   const hashArray = Array.from(new Uint8Array(hashBuffer));
+//   const hashHex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+//   return hashHex;
+// }
+
+
+// // Fonction pour vérifier et uploader si nécessaire
+// export async function uploadVideoHash(file: File) {
+//   const fileHash = await calculateFileHash(file);
+//   const bucketId = appwriteConfig.storageId;
+
+//   // Rechercher dans la base de données si le fichier existe
+//   try {
+//     const response = await databases.listDocuments(appwriteConfig.databaseId, appwriteConfig.filesHashesCollectionId, [
+//       `hash=${fileHash}`
+//     ]);
+
+//     // Si un fichier avec le même hash existe, renvoie l'ID existant
+//     if (response.total > 0) {
+//       return response.documents[0].fileId;
+//     }
+//   } catch (error) {
+//     console.error("Erreur lors de la vérification du fichier existant :", error);
+//   }
+
+//   // Si le fichier n'existe pas, uploader et enregistrer son ID et hash
+//   try {
+//     const uploadedFile = await storage.createFile(bucketId, ID.unique(), file);
+//     await databases.createDocument(appwriteConfig.databaseId, appwriteConfig.filesHashesCollectionId, ID.unique(), {
+//       fileId: uploadedFile.$id,
+//       hash: fileHash
+//     });
+
+//     return uploadedFile.$id;
+//   } catch (error) {
+//     console.error("Erreur lors de l'upload de la vidéo :", error);
+//     return null;
+//   }
+// }
+

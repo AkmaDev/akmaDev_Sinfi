@@ -11,6 +11,13 @@ export const INITIAL_USER = {
   email: "",
   imageUrl: "",
   bio: "",
+  facebook: "", // Je suis passé ici
+  youtube: "",
+  linkedin: "",
+  instagram: "",
+  tiktok: "",
+  websiteLink: "",
+  location: "",
 };
 
 const INITIAL_STATE = {
@@ -51,6 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: currentAccount.email,
           imageUrl: currentAccount.imageUrl,
           bio: currentAccount.bio,
+          facebook: currentAccount.facebook, // Je suis passé ici
+          youtube: currentAccount.youtube,
+          linkedin: currentAccount.linkedin,
+          instagram: currentAccount.instagram,
+          tiktok: currentAccount.tiktok,
+          websiteLink: currentAccount.websiteLink,
+          location: currentAccount.location,
         });
         setIsAuthenticated(true);
 

@@ -11,6 +11,16 @@ export type IUpdateUser = {
   imageId: string;
   imageUrl: URL | string;
   file: File[];
+  facebook?: string; // Je suis passé ici
+  youtube?: string; 
+  linkedin?: string; 
+  instagram?: string; 
+  tiktok?: string;  
+  websiteLink?: string; 
+  location?: string;
+  videoId?: string;
+  videoUrl?: URL | string;
+  videoFile?: File[];
 };
 
 export type INewPost = {
@@ -38,6 +48,15 @@ export type IUser = {
   email: string;
   imageUrl: string;
   bio: string;
+  facebook?: string;  // Je suis passé ici 
+  youtube?: string; 
+  linkedin?: string; 
+  instagram?: string; 
+  tiktok?: string;  
+  websiteLink?: string;
+  location?: string;
+  videoUrl?: string;
+  videoFile?: File[];
 };
 
 export type INewUser = {
